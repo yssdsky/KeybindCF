@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>License Admin 后台</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; font-size: 13px; padding: 16px; background: #f7f8fa; color: #1f2329; }
+    h1 { font-size: 18px; margin-bottom: 12px; }
+    h2 { font-size: 14px; margin: 16px 0 8px; color: #4e5969; }
+    .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    label { width: 120px; color: #4e5969; font-size: 12px; }
+    input, button { padding: 6px 10px; border: 1px solid #c9cdd4; border-radius: 4px; font-size: 13px; outline: none; background: #fff; }
+    input:focus { border-color: #165dff; }
+    button { background: #165dff; color: #fff; border: none; cursor: pointer; }
+    button:hover { opacity: 0.85; }
+    button.danger { background: #f53f3f; }
+    button.mini { background: #e8f0ff; color: #165dff; padding: 4px 10px; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; background: #fff; }
+    th, td { padding: 6px 8px; border: 1px solid #e5e6eb; font-size: 12px; text-align: left; vertical-align: top; }
+    th { background: #f2f3f5; }
+    .msg { padding: 8px 12px; border-radius: 4px; margin: 8px 0; }
+    .msg.ok { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
+    .msg.err { background: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; }
+    .code { font-family: Consolas, Monaco, monospace; word-break: break-all; }
+    .small { font-size: 11px; color: #86909c; }
+    .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .config { background: #fff; padding: 12px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #e5e6eb; }
+  </style>
+</head>
+<body>
+  <h1>License Admin</h1>
+
+  <div class="config">
+    <div class="row">
+      <label>Worker URL</label>
+      <input id="serverUrl" style="flex:1;min-width:300px;" placeholder="https://license-worker.xxx.workers.dev" />
+    </div>
+    <div class="row">
+      <label>Admin Token</label>
+      <input id="adminToken" type="password" style="flex:1;min-width:300px;" placeholder="ADMIN_TOKEN" />
+    </div>
+    <div class="row">
+      <button onclick="saveConfig()">保存配置</button>
+      <span class="small">配置仅存浏览器 localStorage</span>
+    </div>
+  </div>
+
+  <h2>生成激活码</h2>
+  <div class="row">
+    <label>数量</label>
+    <input id="count" type="number" value="1" min="1" max="100" style="width:80px;" />
+    <label>每码设备数</label>
+    <input id="maxDevices" type="number" value="2" min="1" max="50" style="width:80px;" />
+    <label>有效期（天）</label>
+    <input id="expireDays" type="number" value="365" min="0" style="width:80px;" />
+    <span class="small">0=永久</span>
+  </div>
+  <div class="row">
+    <label>备注</label>
+    <input id="note" style="flex:1;min-width:300px;" placeholder="可选，例如：发给张三" />
+    <button onclick="createCodes()">生成</button>
+  </div>
+  <div id="createMsg"></div>
+
+  <h2>激活码列表</h2>
+  <div class="toolbar">
+    <button onclick="loadList()">刷新列表</button>
+    <button class="mini" onclick="exportCsv()">导出 CSV</button>
+  </div>
+  <div id="listMsg"></div>
+  <table id="listTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>激活码</th>
+        <th>设备数（已用/上限）</th>
+        <th>到期</th>
+        <th>创建时间</th>
+        <th>状态</th>
+        <th>备注</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="listBody"></tbody>
+  </table>
+
+<script>
+  function cfg() {
+    return {
+      url: document.getElementById("serverUrl").value.trim().replace(/\/$/, ""),
+      token: document.getElementById("adminToken").value.trim(),
+    };
+  }
+  function saveConfig() {
+    localStorage.setItem("lic_admin", JSON.stringify(cfg()));
+    msg("createMsg", "配置已保存", "ok");
+  }
+  function loadConfig() {
+    const s = localStorage.getItem("lic_admin");
+    if (s) {
+      try {
+        const c = JSON.parse(s);
+        document.getElementById("serverUrl").value = c.url || "";
+        document.getElementById("adminToken").value = c.token || "";
+      } catch (e) {}
+    }
+  }
+
+  function msg(id, text, type) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '<div class="msg ' + (type || "ok") + '">' + text + "</div>";
+  }
+
+  async function call(path, body) {
+    const c = cfg();
+    if (!c.url || !c.token) {
+      msg("createMsg", "请先填写 Worker URL 和 Admin Token 并保存", "err");
+      throw new Error("no config");
+    }
+    // 拦截明显的占位符 URL，避免无意义超时
+    if (/example\.workers\.dev|xxx\.workers\.dev|your-account/i.test(c.url)) {
+      msg("createMsg",
+        "❌ Worker URL 还是占位符！请改成你实际部署的 URL（在 Cloudflare Workers 后台或 wrangler deploy 输出里能看到，例如 https://license-worker.your-account.workers.dev）",
+        "err");
+      throw new Error("placeholder url");
+    }
+    const url = c.url + path;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.assign({ adminToken: c.token }, body || {})),
+    });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch (e) { data = { raw: text }; }
+    if (!res.ok || (data.code && data.code !== 200)) {
+      throw new Error(data.msg || "HTTP " + res.status);
+    }
+    return data;
+  }
+
+  async function createCodes() {
+    try {
+      const r = await call("/admin/code/create", {
+        count: parseInt(document.getElementById("count").value, 10) || 1,
+        maxDevices: parseInt(document.getElementById("maxDevices").value, 10) || 2,
+        expireDays: parseInt(document.getElementById("expireDays").value, 10),
+        note: document.getElementById("note").value,
+      });
+      const codes = (r.data && r.data.codes) || [];
+      const lines = codes.map((c) =>
+        '<div class="code">' + c.code + "  <span class='small'>设备 " + c.maxDevices + " / 到期 " + (c.expireAt ? new Date(c.expireAt).toLocaleDateString() : "永久") + "</span></div>"
+      ).join("");
+      msg("createMsg", "已生成 " + codes.length + " 张：<br>" + lines, "ok");
+      loadList();
+    } catch (e) {
+      msg("createMsg", "生成失败：" + e.message, "err");
+    }
+  }
+
+  let _list = [];
+  async function loadList() {
+    const c = cfg();
+    if (!c.url || !c.token) { msg("listMsg", "请先填配置", "err"); return; }
+    if (/example\.workers\.dev|xxx\.workers\.dev|your-account/i.test(c.url)) {
+      msg("listMsg", "❌ Worker URL 是占位符，请改成实际部署的 URL", "err");
+      return;
+    }
+    try {
+      const res = await fetch(c.url + "/admin/code/list?adminToken=" + encodeURIComponent(c.token));
+      const data = await res.json();
+      if (data.code !== 200) throw new Error(data.msg || "list failed");
+      _list = (data.data && data.data.licenses) || [];
+      renderList();
+      msg("listMsg", "", "ok");
+    } catch (e) {
+      msg("listMsg", "加载失败：" + e.message, "err");
+    }
+  }
+  function renderList() {
+    const tb = document.getElementById("listBody");
+    tb.innerHTML = "";
+    if (!_list.length) {
+      document.getElementById("listTable").style.display = "none";
+      return;
+    }
+    document.getElementById("listTable").style.display = "";
+    _list.forEach((l) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td class="code">' + l.code + "</td>" +
+        "<td>" + l.used + " / " + l.maxDevices + "</td>" +
+        "<td>" + (l.expireAt ? new Date(l.expireAt).toLocaleString() : "永久") + "</td>" +
+        "<td>" + (l.createdAt ? new Date(l.createdAt).toLocaleString() : "-") + "</td>" +
+        "<td>" + (l.revoked ? '<span style="color:#cf1322">已撤销</span>' : '<span style="color:#389e0d">有效</span>') + "</td>" +
+        "<td>" + (l.note || "") + "</td>" +
+        '<td>' +
+          '<button class="mini" onclick="unbindAll(\'' + l.code + '\')">解绑全部</button> ' +
+          '<button class="mini" style="color:#cf1322;background:#fff1f0" onclick="revoke(\'' + l.code + '\')">撤销</button>' +
+        "</td>";
+      tb.appendChild(tr);
+    });
+  }
+  async function unbindAll(code) {
+    if (!confirm("确定解绑 " + code + " 下的所有设备？")) return;
+    try {
+      await call("/admin/code/unbindAll", { code });
+      msg("listMsg", "已解绑 " + code, "ok");
+      loadList();
+    } catch (e) {
+      msg("listMsg", "失败：" + e.message, "err");
+    }
+  }
+  async function revoke(code) {
+    if (!confirm("确定撤销 " + code + "？已激活的设备会立即失效。")) return;
+    try {
+      await call("/admin/code/revoke", { code });
+      msg("listMsg", "已撤销 " + code, "ok");
+      loadList();
+    } catch (e) {
+      msg("listMsg", "失败：" + e.message, "err");
+    }
+  }
+
+  function exportCsv() {
+    if (!_list.length) { msg("listMsg", "列表为空", "err"); return; }
+    const head = ["code", "maxDevices", "used", "expireAt", "createdAt", "revoked", "note"];
+    const rows = _list.map((l) => head.map((k) => {
+      const v = l[k];
+      if (k === "expireAt" || k === "createdAt") return v ? new Date(v).toISOString() : "";
+      return String(v || "");
+    }).join(","));
+    const csv = head.join(",") + "\n" + rows.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "licenses.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  loadConfig();
+</script>
+</body>
+</html>

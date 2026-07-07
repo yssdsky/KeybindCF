@@ -1,0 +1,32 @@
+name = "license-worker"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# 部署后记下这里的 URL，填回 ../config.js 的 LICENSE_SERVER_URL
+# 例如：https://license-worker.<your-account>.workers.dev
+
+# KV 命名空间（用 `wrangler kv namespace create <NAME>` 创建后把 id 填到下方）
+[[kv_namespaces]]
+binding = "LICENSES"
+id = "9946ea5069134d879c880c8e7fcb9880"
+
+[[kv_namespaces]]
+binding = "DEVICES"
+id = "e01764fb9aaa49edb37e3b595458e6eb"
+
+[[kv_namespaces]]
+binding = "CODE_DEVICES"
+id = "647a8ea8e2f54a569ded7edb169c0e5f"
+
+[[kv_namespaces]]
+binding = "TOKEN_INDEX"
+id = "ec98c14141a744f3b1d62046f18e08da"
+
+# 变量（非敏感）
+[vars]
+GRACE_DAYS = "7"
+
+# 敏感变量请用 `wrangler secret put <NAME>` 注入，不要写在这里：
+#   ED25519_PRIVATE_KEY  ECDSA P-256 PKCS8 私钥 hex（用 scripts/gen-keys.js 生成）
+#   ADMIN_TOKEN          admin 接口鉴权 token（自己起一个长随机串）

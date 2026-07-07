@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>授权激活示例</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h2>授权激活示例</h2>
+      <button id="refreshBtn" class="btn btn-mini" title="重新检查状态">刷新</button>
+    </header>
+
+    <!-- =================== 激活区 =================== -->
+    <div id="activationArea" class="activation-area">
+      <div id="licenseStatus" class="status pending">正在检查激活状态...</div>
+
+      <div id="activationForm" class="activation-form" style="display:none;">
+        <div class="form-row">
+          <label for="licenseCode">激活码</label>
+          <input type="text" id="licenseCode" class="input"
+                 placeholder="V1-XXXX-XXXX-XXXX-XXXX" autocomplete="off" />
+        </div>
+        <div class="actions">
+          <button id="activateBtn" class="btn btn-primary">激活</button>
+        </div>
+        <div class="hint" style="margin-top:6px;">
+          一张激活码默认绑定 2 台设备，换机请先在下方"解绑当前设备"。
+        </div>
+      </div>
+
+      <div id="licenseInfo" class="license-info" style="display:none;">
+        <div class="form-row" style="font-size:11px;color:#4e5969;">
+          <label>设备 ID：</label>
+          <span id="licDeviceId" class="value">-</span>
+        </div>
+        <div class="form-row" style="font-size:11px;color:#4e5969;">
+          <label>到期时间：</label>
+          <span id="licExpire" class="value">-</span>
+        </div>
+        <div class="form-row" style="font-size:11px;color:#4e5969;">
+          <label>宽限至：</label>
+          <span id="licGrace" class="value">-</span>
+        </div>
+        <div class="actions">
+          <button id="unbindBtn" class="btn btn-mini" style="flex:0 0 auto;">解绑当前设备</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================== 业务区（未激活时禁用） =================== -->
+    <div id="businessArea" class="business-area" style="display:none;">
+      <!-- Auth 状态 -->
+      <div id="authStatus" class="status pending">等待拦截 Authorization...</div>
+
+      <!-- 手动 / 调试 折叠区 -->
+      <details class="debug-detail">
+        <summary>手动设置 Authorization / 调试信息</summary>
+
+        <div class="form-row">
+          <label>Authorization</label>
+          <input type="text" id="manualAuth" class="input"
+                 placeholder="自动拦截失败时，把目标系统请求头里的 Authorization 完整粘贴到这里" />
+        </div>
+        <div class="actions">
+          <button id="saveManualAuth" class="btn btn-primary" style="flex:0 0 auto;padding:5px 12px;">使用此 Auth</button>
+          <button id="clearManualAuth" class="btn btn-mini" style="flex:0 0 auto;">清除</button>
+        </div>
+
+        <div class="form-row" style="font-size:11px;color:#86909c;margin-top:6px;">
+          <label>最近拦截 URL：</label>
+          <span id="lastUrl" class="value">-</span>
+        </div>
+        <div class="form-row" style="font-size:11px;color:#86909c;">
+          <label>拦截时间：</label>
+          <span id="lastTime" class="value">-</span>
+        </div>
+        <div class="form-row" style="font-size:11px;color:#86909c;">
+          <label>SW 心跳：</label>
+          <span id="swPing" class="value">-</span>
+        </div>
+        <div class="form-row" style="font-size:11px;color:#86909c;">
+          <label>SW 错误：</label>
+          <span id="swError" class="value">-</span>
+        </div>
+      </details>
+
+      <!-- 示例 API 调用（演示如何使用捕获到的 Authorization） -->
+      <div class="demo-area">
+        <div class="form-row">
+          <label for="demoPath">示例 API 路径</label>
+          <input type="text" id="demoPath" class="input"
+                 placeholder="如 /pc/user/getInfo（完整前缀 BASE_URL+API_PREFIX）" />
+        </div>
+        <div class="actions">
+          <button id="demoGetBtn" class="btn btn-primary">GET 调用</button>
+        </div>
+        <div class="form-row" style="flex-direction:column;align-items:stretch;">
+          <label>响应结果</label>
+          <pre id="demoResult" class="demo-result">-</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="license.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

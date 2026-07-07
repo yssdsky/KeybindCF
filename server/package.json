@@ -1,0 +1,17 @@
+{
+  "name": "license-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker 后端：远程激活码 + 设备指纹鉴权",
+  "private": true,
+  "scripts": {
+    "gen-keys": "node scripts/gen-keys.js",
+    "gen-admin-token": "node scripts/gen-admin-token.js",
+    "serve": "node serve-admin.js",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

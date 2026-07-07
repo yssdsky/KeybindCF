@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Authorization 拦截 + License 激活示例",
+  "version": "1.1.0",
+  "description": "Chrome MV3 扩展模板：自动拦截目标站点的 Authorization 头，并基于远程激活码 + 设备指纹完成 License 鉴权（含离线宽限期、心跳续签、解绑换机）",
+  "permissions": [
+    "webRequest",
+    "storage",
+    "sidePanel",
+    "tabs",
+    "activeTab",
+    "scripting",
+    "alarms"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "点击打开授权面板"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}
