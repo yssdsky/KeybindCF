@@ -150,3 +150,6 @@ if (!guardActivated()) return;
 - `ADMIN_TOKEN` 用 `wrangler secret put` 注入
 - 客户端 `config.js` 仅放**公钥**，泄露不影响安全
 - 怀疑私钥泄露：重新 `gen-keys` → 重注入 secret → 重部署 → 更新所有客户端公钥
+
+## 关注我！！！
+<img width="630" height="748" alt="803cb108-bc99-48de-aae0-b558788a7b9d" src="https://github.com/user-attachments/assets/241249f2-61de-422e-a9df-73ce546d339e" />
