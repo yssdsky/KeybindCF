@@ -152,4 +152,4 @@ if (!guardActivated()) return;
 - 怀疑私钥泄露：重新 `gen-keys` → 重注入 secret → 重部署 → 更新所有客户端公钥
 
 ## 关注我！！！
-<img width="630" height="748" alt="803cb108-bc99-48de-aae0-b558788a7b9d" src="https://github.com/user-attachments/assets/241249f2-61de-422e-a9df-73ce546d339e" />
+<img width="315" height="374" alt="803cb108-bc99-48de-aae0-b558788a7b9d" src="https://github.com/user-attachments/assets/241249f2-61de-422e-a9df-73ce546d339e" />
